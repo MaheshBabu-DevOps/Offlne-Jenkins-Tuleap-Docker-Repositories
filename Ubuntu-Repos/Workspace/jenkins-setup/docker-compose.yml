@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    hostname: jenkins.isrd.cair.drdo
+    container_name: jenkins
+    user: root
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - ./certs/jenkins.jks:/var/jenkins_home/ssl/jenkins.jks
+      - ./ca-certificates:/usr/local/share/ca-certificates
+      - ./tuleap.crt:/etc/ssl/certs/tuleap.crt
+      - ./entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - JENKINS_HOME=/var/jenkins_home
+      - JENKINS_OPTS=--httpPort=-1 --httpsPort=8443 --httpsKeyStore=/var/jenkins_home/ssl/jenkins.jks --httpsKeyStorePassword=cair123
+    networks:
+      - tuleap-setup_shared-network
+
+volumes:
+  jenkins_home:
+
+networks:
+  tuleap-setup_shared-network:
+    external: true
