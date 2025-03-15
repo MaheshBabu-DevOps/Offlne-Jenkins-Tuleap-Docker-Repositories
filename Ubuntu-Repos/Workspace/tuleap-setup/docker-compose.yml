@@ -1,0 +1,81 @@
+version: '3.8'
+services:
+  tuleap:
+    image: tuleap/tuleap-community-edition:latest
+    hostname: ${TULEAP_FQDN}
+    restart: always
+    container_name: tuleap
+    ports:
+      - "80:80"
+      - "443:443"
+      - "22:22"
+    volumes:
+      - tuleap-data:/data
+      - ./certs:/etc/pki/undercloud-certs
+      - ./nginx:/etc/nginx/conf.d
+      - ./ca-trust:/etc/pki/ca-trust/source/anchors
+    depends_on:
+      - db
+      - redis
+    environment:
+      - TULEAP_FQDN=${TULEAP_FQDN}
+      - TULEAP_SYS_DBHOST=db
+      - TULEAP_SYS_DBPASSWD=${TULEAP_SYS_DBPASSWD}
+      - SITE_ADMINISTRATOR_PASSWORD=${SITE_ADMINISTRATOR_PASSWORD}
+      - DB_ADMIN_USER=root
+      - DB_ADMIN_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TULEAP_REDIS_HOST=redis
+      - TULEAP_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - MAILER_SMTP_HOST=${MAILER_SMTP_HOST}
+      - MAILER_SMTP_PORT=${MAILER_SMTP_PORT}
+      - MAILER_SMTP_USERNAME=${MAILER_SMTP_USERNAME}
+      - MAILER_SMTP_MAILID=${MAILER_SMTP_MAILID}
+      - MAILER_SMTP_PASSWORD=${MAILER_SMTP_PASSWORD}
+      - MAILER_SMTP_TLS=${MAILER_SMTP_TLS}
+    networks:
+      - shared-network
+
+  db:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--sql-mode=NO_ENGINE_SUBSTITUTION"]
+    restart: always
+    container_name: tuleap_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - shared-network
+
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: tuleap_redis
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    networks:
+      - shared-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: always
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      - MAILER_SMTP_HOST=mailhog
+      - MAILER_SMTP_PORT=1025
+    networks:
+      - shared-network
+
+volumes:
+  tuleap-data:
+  db-data:
+  redis-data:
+
+networks:
+  shared-network:
+    driver: bridge
+
