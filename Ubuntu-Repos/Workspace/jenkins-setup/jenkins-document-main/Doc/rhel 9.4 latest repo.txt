@@ -1,0 +1,231 @@
+Theory:-
+The Jenkins project produces two release lines: 
+Stable (LTS) and regular (Weekly). 
+Stable (LTS) releases are chosen every 12 weeks(84days) from the stream of regular releases.
+Patched every 4 weeks(one month) with bug, security fix, and minor feature backports.
+
+
+#Type: Webpage
+
+https://pkg.origin.jenkins.io/redhat/  (weekly)
+https://pkg.jenkins.io/redhat-stable/  (lts)
+
+Content: HTML listing available files.
+Requirement: Needs parsing to extract the file links.
+Purpose: Accesses Jenkins LTS versions.
+
+//////////////////////////////////////////////////////////////////
+
+##Type: Direct Links
+
+https://mirrors.jenkins-ci.org/redhat/       (weekly)
+https://mirrors.jenkins-ci.org/redhat-stable/ (lts)
+
+Content: Direct file links for easier automation.
+
+Purpose: Provides Jenkins LTS versions, released every 12 weeks (3 months) for stability and reliability.
+
+Summary: pkg.jenkins.io requires parsing HTML to get links, while mirrors.jenkins-ci.org offers direct links, simplifying automated downloads.
+
+
+note:-
+
+#https://pkg.jenkins.io/ (HTML parsing to extract download links)
+
+1. https://pkg.jenkins.io/redhat-stable/ is a webpage, not a direct link to a file. This page contains HTML content listing available files. The script needs to correctly parse the file links from the HTML content.
+
+
+
+#https://mirrors.jenkins-ci.org/redhat-stable/ (Long-Term Support (LTS) versions of Jenkins. These versions are released approximately every 12 weeks (3 months) and are chosen for their stability and reliability).
+
+#provides direct file links for easier automation.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Jenkins version:-
+
+#!/bin/bash
+
+# Update system and install tools
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y wget curl createrepo-c
+
+# Set download directory
+DOWNLOAD_DIR="/home/cair/Downloads/"
+mkdir -p "$DOWNLOAD_DIR"
+cd "$DOWNLOAD_DIR" || exit 1
+
+# Fetch latest Jenkins RPM and generate metadata
+latest_url=$(curl -s https://mirrors.jenkins-ci.org/redhat-stable/ | grep -oP 'jenkins-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+.noarch.rpm' | sort -V | tail -n 1)
+wget "https://mirrors.jenkins-ci.org/redhat-stable/$latest_url"
+createrepo_c "$DOWNLOAD_DIR"
+
+
+
+//////////////////////////////////////////////////////////////////////
+
+//main:-(with war file version)-plugins update
+
+Steps to Download Jenkins Plugins Without Jenkins:
+
+online:-ubuntu22.04
+
+Download the Jenkins Plugin Manager CLI:
+curl -L -o jenkins-plugin-manager.jar https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar
+
+
+Create a Plugins List:
+nano plugins.txt
+tuleap-api:latest
+tuleap-git-branch-source:latest
+tuleap-oauth:latest
+
+
+Download Plugins and Dependencies:-
+wget https://get.jenkins.io/war-stable/2.479.1/jenkins.war
+
+
+Then run:-
+java -jar jenkins-plugin-manager.jar --war jenkins.war --plugin-file plugins.txt --plugin-download-directory jenkins_plugins
+
+
+
+offline:-
+
+Copy Plugins: Transfer the jenkins_plugins directory to your offline Jenkins machine.
+
+Place Plugins: Copy the plugins to /var/lib/jenkins/plugins directory.
+
+sudo systemctl restart jenkins
+
+
+update:_
+
+#You can simply copy the new updated .jpi files to the /var/lib/jenkins/plugins/ directory, and they will overwrite the old versions if they are newer.
+
+sudo systemctl stop jenkins
+sudo cp -u ~/path_to_transferred_plugins/jenkins_plugins/*.jpi /var/lib/jenkins/plugins/
+sudo chown jenkins:jenkins /var/lib/jenkins/plugins/*.jpi
+sudo systemctl start jenkins
+
+
+
+/////////////////////////////////////both latest version and plugins////////////////////////////////////////
+
+#!/bin/bash
+
+# Update system and install tools
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y wget curl createrepo-c openjdk-17-jdk
+
+# Set download directory
+DOWNLOAD_DIR="/home/cair/Downloads/"
+mkdir -p "$DOWNLOAD_DIR"
+cd "$DOWNLOAD_DIR" || exit
+
+# Fetch latest Jenkins RPM and version number
+latest_url=$(curl -s https://mirrors.jenkins-ci.org/redhat-stable/ | grep -oP 'jenkins-[0-9]+\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+.noarch.rpm' | sort -V | tail -n 1)
+version=$(echo $latest_url | grep -oP '[0-9]+\.[0-9]+\.[0-9]+')
+wget "https://mirrors.jenkins-ci.org/redhat-stable/$latest_url"
+createrepo_c "$DOWNLOAD_DIR"
+
+# Download the Jenkins Plugin Manager CLI
+curl -L -o jenkins-plugin-manager.jar https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar
+
+# Create plugins.txt file with desired plugins
+cat <<EOL > plugins.txt
+tuleap-api:latest
+tuleap-git-branch-source:latest
+tuleap-oauth:latest
+# Git Plugins
+git:latest
+git-client:latest
+github-api:latest
+github:latest
+github-branch-source:latest
+git-server:latest
+git-parameter:latest
+github-pullrequest:latest
+git-changelog:latest
+github-autostatus:latest
+git-tag-message:latest
+last-changes:latest
+# Blue Ocean Plugins
+blueocean:latest
+blueocean-commons:latest
+blueocean-rest:latest
+blueocean-web:latest
+blueocean-pipeline-scm-api:latest
+blueocean-git-pipeline:latest
+blueocean-dashboard:latest
+blueocean-pipeline-editor:latest
+# Docker-related plugins
+docker-plugin:latest
+docker-commons:latest
+docker-workflow:latest
+docker-java-api:latest
+docker-compose-build-step:latest
+# SSH-related plugins
+ssh-credentials:latest
+ssh-slaves:latest
+sshd:latest
+ssh-steps:latest
+# Test Plugins
+junit:latest
+plot:latest
+testInProgress:latest
+performance:latest
+maven-plugin:latest
+autograding:latest
+testng-plugin:latest
+test-results-aggregator:latest
+test-stability:latest
+robot:latest
+seleniumhtmlreport:latest
+junit-realtime-test-reporter:latest
+# Email plugins
+email-ext:latest
+emailext-template:latest
+mail-watcher-plugin:latest
+mailer:latest
+poll-mailbox-trigger-plugin:latest
+view-job-filters:latest
+# Pipelines plugins
+pipeline-rest-api:latest
+pipeline-stage-step:latest
+pipeline-input-step:latest
+pipeline-model-api:latest
+pipeline-build-step:latest
+pipeline-graph-analysis:latest
+pipeline-stage-view:latest
+pipeline-utility-steps:latest
+pipeline-graph-view:latest
+pipeline-timeline:latest
+# Webhooks and triggers
+webhook-step:latest
+multibranch-scan-webhook-trigger:latest
+parameterized-trigger:latest
+gerrit-trigger:latest
+generic-webhook-trigger:latest
+authentication-tokens:latest
+ws-cleanup:latest
+# Backup and disk usage plugins
+sonar:latest
+prometheus:latest
+thinBackup:latest
+periodicbackup:latest
+backup:latest
+disk-usage:latest
+diskcheck:latest
+role-strategy:latest
+cloudbees-disk-usage-simple:latest
+EOL
+
+# Download the Jenkins WAR file using the fetched version
+wget "https://get.jenkins.io/war-stable/${version}/jenkins.war"
+
+# Download plugins and their dependencies
+java -jar jenkins-plugin-manager.jar --war jenkins.war --plugin-file plugins.txt --plugin-download-directory jenkins_plugins
+
+
